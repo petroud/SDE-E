@@ -26,6 +26,9 @@ public class RqRouterFlatMap extends RichFlatMapFunction<Request, Request> imple
 			handleRequestID6(rq, tmpkey, out);
 		} else if (rq.getSynopsisID() == 100) {
 			handleSynopsisID100(rq, tmpkey, out);
+		} else if (rq.getRequestID() == 777) {
+			// Request list of active synopses
+
 		} else {
 			handleDefaultCase(rq, tmpkey, out);
 		}

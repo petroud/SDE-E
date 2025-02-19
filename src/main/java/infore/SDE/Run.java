@@ -6,8 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import infore.SDE.messages.Datapoint;
-import infore.SDE.messages.Message;
+import infore.SDE.messages.*;
 import infore.SDE.reduceFunctions.MessageReducer;
 import infore.SDE.sources.KafkaProducerMessage;
 import infore.SDE.sources.kafkaProducerEstimation;
@@ -23,8 +22,6 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.datastream.SplitStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import infore.SDE.messages.Estimation;
-import infore.SDE.messages.Request;
 import org.apache.flink.util.OutputTag;
 
 @SuppressWarnings("deprecation")
@@ -82,13 +79,12 @@ public class Run {
 						return dp;
 					}
 				}).name("DATA_SOURCE_STREAM").keyBy((KeySelector<Datapoint, String>)Datapoint::getKey);
-
 		// Map and transform Kafka input for data topic to a stream of Request objects
 		DataStream<Request> requestStream = stringRequestStream
 				.map(new MapFunction<String, Request>() {
 					private static final long serialVersionUID = 1L;
 					@Override
-					public Request map(String node) throws IOException {
+					public Request map(String node) throws Exception {
 						//Use object mapper from jackson to map the string to a Request object
 						ObjectMapper objectMapper = new ObjectMapper();
 
@@ -96,10 +92,11 @@ public class Run {
 						return request;
 					}
 				}).name("REQUEST_SOURCE_STREAM").keyBy((KeySelector<Request, String>) Request::getKey);
-
-
+		DataStream<Message> synopsisMessages = requestStream.keyBy((KeySelector<Request, String>) Request::getKey).process(new SynopsisManager());
+		synopsisMessages.addSink(kpmsg.getProducer());
+//
 		// Direct the request stream through the RqRouterFlatMap in order to generate SUB-Requests based on
-		// number of parallelism 
+		// number of parallelism
 		DataStream<Request> requestRouter = requestStream.flatMap(new RqRouterFlatMap()).name("REQUEST_ROUTER");
 
 		// Connect the original request stream with the incoming data stream in order to allocate parallelism settings
@@ -110,7 +107,7 @@ public class Run {
 
 		SingleOutputStreamOperator<Estimation> estimationStream = dataRouter.keyBy((KeySelector<Datapoint, String>) Datapoint::getKey)
 				.connect(requestRouter.keyBy((KeySelector<Request, String>) Request::getKey))
-				.process(new SDECoProcessFunction(true)).name("SYNOPSES_MAINTENANCE_CORE");
+				.process(new SDECoProcessFunction(false)).name("SYNOPSES_MAINTENANCE_CORE");
 
 		// Get Messages emitted in the side output of the estimation stream by enforcing the tag.
 		DataStream<Message> logs = estimationStream.getSideOutput(logOutputTag);
