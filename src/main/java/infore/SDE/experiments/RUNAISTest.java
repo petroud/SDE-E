@@ -52,7 +52,7 @@ public class RUNAISTest {
         // Populate Kafka Topics with requests and data prior to StreamEnv setup
         if(SOURCE.startsWith("auto")) {
             Thread thread1 = new Thread(() -> {
-                (new SendAISTest()).run(kafkaDataInputTopic,kafkaRequestInputTopic, PARALLELISM, kafkaBrokersList);
+                (new SendAISTest()).run(kafkaDataInputTopic,kafkaRequestInputTopic, PARALLELISM); // , kafkaBrokersList
             });
             thread1.start();
         }

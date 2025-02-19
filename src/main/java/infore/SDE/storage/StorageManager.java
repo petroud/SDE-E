@@ -29,13 +29,23 @@ import java.net.URI;
 
 
 public class StorageManager {
-
     private static final String BUCKET_NAME = "sde-bucket";
-    private static final String MINIO_ENDPOINT = "https://minio.stelar.gr";
-    private static final String AWS_ACCESS_KEY_ID = "dLTI3bbOHT83IwXoWZod";
-    private static final String AWS_SECRET_ACCESS_KEY = "EQ8XNI9htSUCrxeWbFNfLWzB78J6i17oIZmqJ3yG";
+    private static final String MINIO_ENDPOINT = "https://minio.vista.stelar.gr";
+    private static String AWS_ACCESS_KEY_ID;
+    private static String AWS_SECRET_ACCESS_KEY;
+    static {loadCredentials();}
 
-
+    private static void loadCredentials() {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            String CREDENTIALS_FILE = "credentials/credentials.json";
+            Credentials credentials = mapper.readValue(new File(CREDENTIALS_FILE), Credentials.class);
+            AWS_ACCESS_KEY_ID = credentials.getAWS_ACCESS_KEY_ID();
+            AWS_SECRET_ACCESS_KEY = credentials.getAWS_SECRET_ACCESS_KEY();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
     /**
         The instance of the S3 client connected to either AWS S3 or a MinIO instance.
      */
