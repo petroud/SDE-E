@@ -92,7 +92,9 @@ public class Run {
 						return request;
 					}
 				}).name("REQUEST_SOURCE_STREAM").keyBy((KeySelector<Request, String>) Request::getKey);
-		DataStream<Message> synopsisMessages = requestStream.keyBy((KeySelector<Request, String>) Request::getKey).process(new SynopsisManager());
+		DataStream<Message> synopsisMessages = requestStream.keyBy(
+				(KeySelector<Request, String>) Request::getKey).process(
+						new SynopsisManager()).name("SYNOPSIS_MANAGER");
 		synopsisMessages.addSink(kpmsg.getProducer());
 //
 		// Direct the request stream through the RqRouterFlatMap in order to generate SUB-Requests based on

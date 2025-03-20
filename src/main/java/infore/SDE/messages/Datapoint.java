@@ -12,12 +12,12 @@ import java.io.Serializable;
 public class Datapoint implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    private String DataSetkey; //hash value
+    private String dataSetkey; //hash value
     private String StreamID; //the stream ID
     private JsonNode values;
 
     public Datapoint(String key, String streamID, JsonNode value) {
-        this.DataSetkey = key;
+        this.dataSetkey = key;
         StreamID = streamID;
         this.values = value;
 
@@ -27,7 +27,7 @@ public class Datapoint implements Serializable {
     }
 
     public Datapoint(String d, String s, Object o) {
-        DataSetkey=d; //hash value
+        dataSetkey =d; //hash value
         StreamID=s; //the stream ID
         String jsonString = "{\"value\":\"" +o+ "\"}";
         ObjectMapper mapper = new ObjectMapper();
@@ -39,20 +39,20 @@ public class Datapoint implements Serializable {
     }
 
     public String ValueToKafka() {
-        return "\""+DataSetkey+","+StreamID+","+values+"\"";
+        return "\""+ dataSetkey +","+StreamID+","+values+"\"";
     }
 
     public String keyToKafka() {
         //int randomValue = 10 + (100 - 10) * r.nextInt((100 - 10) + 1) + 10;
-        return "\""+DataSetkey+"\"";
+        return "\""+ dataSetkey +"\"";
     }
 
     public String getDataSetkey() {
-        return DataSetkey;
+        return dataSetkey;
     }
 
     public void setDataSetkey(String key) {
-        this.DataSetkey = key;
+        this.dataSetkey = key;
     }
 
     public String getStreamID() {
@@ -79,14 +79,14 @@ public class Datapoint implements Serializable {
     @Override
     public String toString() {
         return "Datapoint{" +
-                "DataSetkey='" + DataSetkey + '\'' +
+                "DataSetkey='" + dataSetkey + '\'' +
                 ", StreamID='" + StreamID + '\'' +
                 ", values='" + values + '\'' +
                 '}';
     }
 
     public String  getKey() {
-        return this.DataSetkey;
+        return this.dataSetkey;
     }
 
 

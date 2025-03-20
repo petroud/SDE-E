@@ -11,6 +11,8 @@ import infore.SDE.messages.Request;
 import infore.SDE.messages.Message;
 import infore.SDE.messages.MessageType;
 
+import java.util.ArrayList;
+
 public class SynopsisManager extends KeyedProcessFunction<String, Request, Message> {
 
     private MapState<Integer, Request> synopsesState;
@@ -30,19 +32,27 @@ public class SynopsisManager extends KeyedProcessFunction<String, Request, Messa
         int requestID = request.getRequestID();
         int uid = request.getUID();
 
-        if (requestID == 1 || requestID == 4 || requestID == 5) {
-            // Initialize synopsis
+        if (requestID == 1 || requestID == 4 || requestID == 5
+        || requestID == 200 || requestID == 201 || requestID == 202) {
+            // Initialize synopsis or load snapshot
             synopsesState.put(uid, request);
         } else if (requestID == 2) {
             // Delete synopsis
             synopsesState.remove(uid);
         } else if (requestID == 777) {
-            // Return list of synopses
+            // Return list of synopses, all in one message.
+            StringBuilder synopses = new StringBuilder();
+            int count = 0;
             for (Request synopsis : synopsesState.values()) {
-                Message message = new Message(MessageType.LOG, "Existing synopsis: " + synopsis.getKey(), synopsis.getKey());
-                // TODO: add more info about request for logging.
-                out.collect(message);
+                synopses.append("Syn_").append(count).append("_").append(synopsis.toJsonString()).append("\n");
+                count++;
             }
+            Message message = new Message(MessageType.RESPONSE, synopses.toString(), request.getExternalUID());
+            out.collect(message);
+//            for (Request synopsis : synopsesState.values()) {
+//                Message message = new Message(MessageType.RESPONSE, "Existing Synopsis: " + synopsis.toJsonString(), request.getExternalUID());
+//                out.collect(message);
+//            }
         }
     }
 }

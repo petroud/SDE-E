@@ -39,26 +39,26 @@ public class CM  implements Serializable{
     public CM(int depth, int width, int seed) {
         this.depth = depth;
         this.width = width;
-        this.eps = 2.0 / width;
-        this.confidence = 1 - 1 / Math.pow(2, depth);
+        this.eps = Math.exp(1) / width;
+        this.confidence = 1 - 1 / Math.pow(Math.exp(1), depth);
         initTablesWith(depth, width, seed);
     }
 
     public CM(double epsOfTotalCount, double confidence, int seed) {
-        // 2/w = eps ; w = 2/eps
-        // 1/2^depth <= 1-confidence ; depth >= -log2 (1-confidence)
+        // 2/w = eps ; w = euler/eps
+        // 1/2^depth <= 1-confidence ; depth >= -ln (1-confidence)
         this.eps = epsOfTotalCount;
         this.confidence = confidence;
-        this.width = (int) Math.ceil(2 / epsOfTotalCount);
-        this.depth = (int) Math.ceil(-Math.log(1 - confidence) / Math.log(2));
+        this.width = (int) Math.ceil(Math.exp(1) / epsOfTotalCount);
+        this.depth = (int) Math.ceil(-Math.log(1 - confidence) / Math.log(Math.exp(1)));
         initTablesWith(depth, width, seed);
     }
 
     CM(int depth, int width, long size, long[] hashA, long[][] table) {
         this.depth = depth;
         this.width = width;
-        this.eps = 2.0 / width;
-        this.confidence = 1 - 1 / Math.pow(2, depth);
+        this.eps = Math.exp(1) / width;
+        this.confidence = 1 - 1 / Math.pow(Math.exp(1), depth);
         this.hashA = hashA;
         this.table = table;
 
@@ -350,8 +350,8 @@ public class CM  implements Serializable{
             sketch.size = s.readLong();
             sketch.depth = s.readInt();
             sketch.width = s.readInt();
-            sketch.eps = 2.0 / sketch.width;
-            sketch.confidence = 1 - 1 / Math.pow(2, sketch.depth);
+            sketch.eps = Math.exp(1) / sketch.width;
+            sketch.confidence = 1 - 1 / Math.pow(Math.exp(1), sketch.depth);
             sketch.hashA = new long[sketch.depth];
             sketch.table = new long[sketch.depth][sketch.width];
             for (int i = 0; i < sketch.depth; ++i) {
