@@ -6,6 +6,7 @@ import infore.SDE.reduceFunctions.WLSH_Reduce;
 import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.util.Collector;
 
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class ReduceFlatMap extends RichFlatMapFunction<Estimation, Estimation> {
@@ -107,12 +108,12 @@ public class ReduceFlatMap extends RichFlatMapFunction<Estimation, Estimation> {
         else if (id == 30) {
             // SpatialSketch
             String[] params = value.getParam();
-            if (params.length != 6) {
+            if (params.length < 1) {
                 throw new UnsupportedOperationException("Invalid number of parameters");
             }
-            int basicSketchID = Integer.parseInt(params[1]);
+            int basicSketchID = Integer.parseInt(params[4]);
             if (basicSketchID != 1) {
-                throw new UnsupportedOperationException("Basic Sketch not available");
+                throw new UnsupportedOperationException("Basic Sketch not available for params" + Arrays.toString(params));
             }
             t_rf = new SimpleSumFunction(value.getNoOfP(), 0, value.getParam(), value.getSynopsisID(), value.getRequestID());
             t_rf.add(value);

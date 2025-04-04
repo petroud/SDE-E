@@ -31,11 +31,8 @@ public class SimpleSumFunction extends ReduceFunction {
 
 		estimations.add(e.getEstimation());
 		count++;
-		if(count == nOfP) {
-			return true;
-		}
-		return false;
-	}
+        return count == nOfP;
+    }
 
 
 }

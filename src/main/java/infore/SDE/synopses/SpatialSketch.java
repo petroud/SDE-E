@@ -2,11 +2,18 @@ package infore.SDE.synopses;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import infore.SDE.messages.Estimation;
+import infore.SDE.messages.Message;
+import infore.SDE.messages.MessageType;
 import infore.SDE.messages.Request;
+import infore.SDE.sources.KafkaProducerMessage;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
+
+import static infore.SDE.Run.kafkaBrokersList;
+import static infore.SDE.Run.kafkaLogTopic;
 
 public class SpatialSketch extends Synopsis {
     int uid;
@@ -16,11 +23,12 @@ public class SpatialSketch extends Synopsis {
     int minY;
     int maxY;
     int maxRes;
-    int resolution = 1;
+    static int resolution = 1;
     int levels;
+    int nestedSynopsisID;
     HashMap<Integer, Synopsis[][]> sketch;
     String[] basicSketchParametersArray;
-    ArrayList<Dyadic1D> top_level_intervals;
+    static ArrayList<Dyadic1D> top_level_intervals;
 
     public SpatialSketch(int uid, String[] parameters) {
         super(uid, parameters[0], parameters[1], parameters[2]);
@@ -28,7 +36,7 @@ public class SpatialSketch extends Synopsis {
         this.uid = uid;
         String basicSketchParameters = parameters[3];
         basicSketchParametersArray = basicSketchParameters.split(";");
-        int synopsisID = Integer.parseInt(parameters[4]);
+        nestedSynopsisID = Integer.parseInt(parameters[4]);
         minX = Integer.parseInt(parameters[5]);
         maxX = Integer.parseInt(parameters[6]);
         minY = Integer.parseInt(parameters[7]);
@@ -47,7 +55,7 @@ public class SpatialSketch extends Synopsis {
                 int x_dim = (int) Math.pow(2, x_pow);
                 int y_dim = (int) Math.pow(2, y_pow);
                 Synopsis[][] sketchArray;
-                if (synopsisID == 1) {
+                if (nestedSynopsisID == 1) {
                     sketchArray = new CountMin[x_dim][y_dim];
                     // initialize null pointers
                     for (int i = 0; i < x_dim; i++) {
@@ -56,7 +64,7 @@ public class SpatialSketch extends Synopsis {
                         }
                     }
                 } else {
-                    throw new IllegalArgumentException("Invalid synopsis ID for SpatialSketch: " + synopsisID + " (expected 1)");
+                    throw new IllegalArgumentException("Invalid synopsis ID for SpatialSketch: " + nestedSynopsisID + " (expected 1)");
                 }
 
                 sketch.put(dimToIndex(x_dim, y_dim), sketchArray);
@@ -134,9 +142,6 @@ public class SpatialSketch extends Synopsis {
                 UpdateInterval(x_intervals[i][0]-1, x_intervals[i][1]-1, y_intervals[j][0]-1, y_intervals[j][1]-1, k);
             }
         }
-
-
-        //"data_topic" "request_topic" "OUT" "localhost:9092" "2"
     }
 
     private void UpdateInterval(int x1, int x2, int y1, int y2, Object k) {
@@ -148,10 +153,11 @@ public class SpatialSketch extends Synopsis {
         int x_cell = x1/(x2 - x1 + 1);
         int y_cell = y1/(y2 - y1 + 1);
         if (sketchArray[x_cell][y_cell] == null) {
-            if (basicSketchParametersArray.length == 6) {
+            if (nestedSynopsisID == 1) {
                 sketchArray[x_cell][y_cell] = new CountMin(uid, basicSketchParametersArray);
+                // TODO: logic of basicsketches here + which reduce method they need in the query.
             } else {
-                throw new IllegalArgumentException("Invalid number of parameters for SpatialSketch: " + basicSketchParametersArray.length + " (expected 6)");
+                throw new IllegalArgumentException("Nested sketch not supported: " + nestedSynopsisID + ".");
             }
         }
         sketchArray[x_cell][y_cell].add(k);
@@ -214,28 +220,38 @@ public class SpatialSketch extends Synopsis {
             return sum;
         }
     }
+
     @Override
     public Estimation estimate(Request rq) {
+
+        // Format: [x1, x2, y1, y2, basiSketchSynId, nestedParameters]
         if(rq.getRequestID() % 10 == 6) {
             throw new UnsupportedOperationException("Not implemented yet");
         }
         int subQueries = 0; // For future use with dynamic spatial sketch.
         Sum sum = new Sum();
         String[] parameters = rq.getParam();
-        int x1 = getNormX(Integer.parseInt(parameters[2]));
-        int x2 = getNormX(Integer.parseInt(parameters[3]));
-        int y1 = getNormY(Integer.parseInt(parameters[4]));
-        int y2 = getNormY(Integer.parseInt(parameters[5]));
 
+        int x1 = getNormX(Integer.parseInt(parameters[0]));
+        int x2 = getNormX(Integer.parseInt(parameters[1]));
+        int y1 = getNormY(Integer.parseInt(parameters[2]));
+        int y2 = getNormY(Integer.parseInt(parameters[3]));
+
+        String[] nestedParameters = new String[parameters.length - 5];
+        System.arraycopy(parameters, 5, nestedParameters, 0, nestedParameters.length);
+
+        Request nestedRequest = new Request(rq.getDataSetkey(), rq.getRequestID(),
+                rq.getSynopsisID(), rq.getUID(), rq.getStreamID(), nestedParameters, rq.getNoOfP(), rq.getExternalUID());
+        // make new datastream and add message to it
         ArrayList<Dyadic2D> dyadic_intervals = GetDyadicIntervals(x1, x2, y1, y2);
         for (Dyadic2D di : dyadic_intervals) {
             di.x1--;
             di.x2--;
             di.y1--;
             di.y2--;
-            boolean query_success = QueryDyadicInterval(di, rq, sum);
+            boolean query_success = QueryDyadicInterval(di, nestedRequest, sum);
             if (!query_success) {
-                subQueries += RecurseQueryDyadicInterval(di, rq, sum);
+                subQueries += RecurseQueryDyadicInterval(di, nestedRequest, sum);
             } else {
                 subQueries++;
             }
@@ -291,7 +307,7 @@ public class SpatialSketch extends Synopsis {
 
     }
 
-    private ArrayList<Dyadic2D> GetDyadicIntervals(int x1, int x2, int y1, int y2) {
+    private static ArrayList<Dyadic2D> GetDyadicIntervals(int x1, int x2, int y1, int y2) {
         ArrayList<Dyadic1D> x_intervals = new ArrayList<>();
         ArrayList<Dyadic1D> y_intervals = new ArrayList<>();
 
@@ -318,7 +334,7 @@ public class SpatialSketch extends Synopsis {
         return dyadic_intervals;
     }
 
-    private ArrayList<Dyadic1D> getDyadic1DS(int i1, int i2, ArrayList<Dyadic1D> intervals) {
+    private static ArrayList<Dyadic1D> getDyadic1DS(int i1, int i2, ArrayList<Dyadic1D> intervals) {
         for (Dyadic1D interval : top_level_intervals) {
             int overlap = IntervalOverlap(i1 + 1, i2 + 1, interval.start, interval.end);
             if (overlap == 1) {
@@ -343,7 +359,7 @@ public class SpatialSketch extends Synopsis {
     }
 
 
-    private ArrayList<Dyadic1D> ObtainIntervals(Dyadic1D target, Dyadic1D base) {
+    private static ArrayList<Dyadic1D> ObtainIntervals(Dyadic1D target, Dyadic1D base) {
         // Check resolution compliance
         if (base.end - base.start + 1 < resolution) {
             return new ArrayList<>();
@@ -367,7 +383,7 @@ public class SpatialSketch extends Synopsis {
         }
     }
 
-    private ArrayList<Dyadic1D> getDyadic1DS(Dyadic1D target, Dyadic1D base, Dyadic1D lower_base, ArrayList<Dyadic1D> intervals) {
+    private static ArrayList<Dyadic1D> getDyadic1DS(Dyadic1D target, Dyadic1D base, Dyadic1D lower_base, ArrayList<Dyadic1D> intervals) {
         if (IntervalOverlap(target.start, target.end, lower_base.start, lower_base.end) != 0) {
             intervals = ObtainIntervals(new Dyadic1D(Math.max(target.start, lower_base.start), Math.min(target.end, lower_base.end), target.coverage), lower_base);
             if (intervals.isEmpty()) {
@@ -379,7 +395,7 @@ public class SpatialSketch extends Synopsis {
     }
 
     // Does interval [start1, end1] overlap with [start2, end2]?
-    private int IntervalOverlap(int start1, int end1, int start2, int end2) {
+    private static int IntervalOverlap(int start1, int end1, int start2, int end2) {
         if (start1 <= start2 && end1 >= end2) {
             return 1; // Overlaps
         } else if (start1 >= start2 && end1 <= end2) {
@@ -420,6 +436,6 @@ public class SpatialSketch extends Synopsis {
     }
     @Override
     public Synopsis merge(Synopsis sk) {
-        return sk;
+               return sk;
     }
 }

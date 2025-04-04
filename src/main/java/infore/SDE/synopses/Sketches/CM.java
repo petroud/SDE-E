@@ -200,6 +200,18 @@ public class CM  implements Serializable{
         checkSizeAfterAdd(String.valueOf(item), count);
     }
 
+    public void add(int start, int end, long count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("Negative increments not implemented");
+        }
+        long composite_hash = (start * 0x1f1f1f1fL) ^ (end * 0x7f7f7f7fL);
+        for (int i = 0; i < depth; ++i) {
+            table[i][hash(composite_hash, i)] += count;
+        }
+        checkSizeAfterAdd(String.valueOf(composite_hash), count);
+    }
+
+
     public void add(String item, long count) {
         if (count < 0) {
             // Actually for negative increments we'll need to use the median
@@ -228,6 +240,15 @@ public class CM  implements Serializable{
         long res = Long.MAX_VALUE;
         for (int i = 0; i < depth; ++i) {
             res = Math.min(res, table[i][hash(item, i)]);
+        }
+        return res;
+    }
+
+    public long estimateCount(long start, long end) {
+        long composite_hash = (start * 0x1f1f1f1fL) ^ (end * 0x7f7f7f7fL);
+        long res = Long.MAX_VALUE;
+        for (int i = 0; i < depth; ++i) {
+            res = Math.min(res, table[i][hash(composite_hash, i)]);
         }
         return res;
     }
@@ -266,11 +287,6 @@ public class CM  implements Serializable{
                 checkSizeAfterOperation(previousSize, "merge(" + estimator + ")", size);
             }
         }
-
-
-
-
-
 
     public static CM static_merge(CM... estimators) {
         CM merged = null;
