@@ -97,13 +97,22 @@ public class SDECoProcessFunction extends CoProcessFunction<Datapoint, Request, 
 
 		// Build content for side output
 		String uidKey = "";
+		String dataSetkey = "";
 		int reqId = -1;
+		String externalUID = "";
+		int noOfP = 0;
 		if (request != null) {
 			uidKey = request.getUID() + "_" + request.getKey();
 			reqId = request.getRequestID();
+			externalUID = request.getExternalUID();
+			dataSetkey = request.getDataSetkey();
+			noOfP = request.getNoOfP();
 		} else {
 			// Just a fallback
 			uidKey = "NO_REQUEST";
+			externalUID = "NO_REQUEST";
+			dataSetkey = "NO_REQUEST";
+			noOfP = 2;
 		}
 
 		MessageType type = MessageType.RESPONSE;
@@ -114,7 +123,7 @@ public class SDECoProcessFunction extends CoProcessFunction<Datapoint, Request, 
 			type = MessageType.ERROR;
 		}
 		// Create the Message object
-		Message msg = new Message(type, info, request.getExternalUID(), reqId, request.getDataSetkey(), request.getNoOfP());
+        Message msg = new Message(type, info, externalUID, reqId, dataSetkey, noOfP);
 
 		// Emit to side output
 		ctx.output(logOutputTag, msg);
@@ -157,8 +166,8 @@ public class SDECoProcessFunction extends CoProcessFunction<Datapoint, Request, 
 				try {
 					ski.add(node.getValues());
 				} catch (Exception e) {
-					e.printStackTrace();
 					logOrOutput(ctx, "ERROR", "Exception in adding Datapoint: " + e.getMessage(), null);
+					e.printStackTrace();
 				}
 			}
 			M_Synopses.put(node.getKey(), Synopses);
@@ -695,7 +704,7 @@ public class SDECoProcessFunction extends CoProcessFunction<Datapoint, Request, 
 				case 30:
 					// SpatialSketch
 					if (rq.getParam().length > 4) {
-						newSketch = new SpatialSketch(rq.getUID(), rq.getParam());
+						newSketch = new SpatialSketchRefOtherSyns(rq.getUID(), rq.getParam());
 						newSketch.setParallelism(rq.getNoOfP());
 						newSketch.setKey(rq.getDataSetkey());
 					}

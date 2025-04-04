@@ -1,6 +1,7 @@
 package infore.SDE.synopses;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.streaminer.stream.cardinality.CardinalityMergeException;
 import org.streaminer.stream.cardinality.HyperLogLog;
 
 import infore.SDE.messages.Estimation;
@@ -15,41 +16,42 @@ public class HyperLogLogSynopsis extends Synopsis {
 	public HyperLogLogSynopsis(int uid, String[] parameters) {
 	     super(uid, parameters[0],parameters[1],parameters[2]);
 	     hll = new HyperLogLog(Double.parseDouble(parameters[3]));
-		}
+	}
+
+	public HyperLogLogSynopsis(int uid, String[] parameters, HyperLogLog hll) {
+		super(uid, parameters[0],parameters[1],parameters[2]);
+		this.hll = hll;
+	}
 		 
-		@Override
-		public void add(Object k) {
-			//ObjectMapper mapper = new ObjectMapper();
-			JsonNode node = (JsonNode)k;
-        /*try {
-            node = mapper.readTree(j);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } */
-			String value = node.get(this.valueIndex).asText();
-			hll.offer(value);
-		}
+	@Override
+	public void add(Object k) {
+		//ObjectMapper mapper = new ObjectMapper();
+		JsonNode node = (JsonNode) k;
+		/*try {
+			node = mapper.readTree(j);
+		} catch (IOException e) {
+			e.printStackTrace();
+		} */
+		String value = node.get(this.valueIndex).asText();
+		hll.offer(value);
+	}
 
-		@Override
-		public Object estimate(Object k) {
-			return hll.cardinality();		
-		}
+	@Override
+	public Object estimate(Object k) {
+		return hll.cardinality();
+	}
 
-		@Override
-		public Estimation estimate(Request rq) {
+	@Override
+	public Estimation estimate(Request rq) {
 
-			return new Estimation(rq, Double.toString((double)hll.cardinality()), Integer.toString(rq.getUID()));
-		}
-		
-		
-		@Override
-		public Synopsis merge(Synopsis sk) {
-			return sk;
-			
-		}
-		
-		
-		
+		return new Estimation(rq, Double.toString((double)hll.cardinality()), Integer.toString(rq.getUID()));
+	}
+
+	@Override
+	public Synopsis merge(Synopsis sk) throws CardinalityMergeException {
+		return new HyperLogLogSynopsis(this.SynopsisID, new String[]{keyIndex, valueIndex, operationMode},
+                (HyperLogLog) hll.merge(((HyperLogLogSynopsis) sk).hll));
+	}
 		
 	}
 

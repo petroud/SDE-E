@@ -112,8 +112,9 @@ public class ReduceFlatMap extends RichFlatMapFunction<Estimation, Estimation> {
                 throw new UnsupportedOperationException("Invalid number of parameters");
             }
             int basicSketchID = Integer.parseInt(params[4]);
-            if (basicSketchID != 1) {
-                throw new UnsupportedOperationException("Basic Sketch not available for params" + Arrays.toString(params));
+            int[] supportedSketchIDs = {1, 2, 3, 4, 6, 7, 8, 31};
+            if (Arrays.stream(supportedSketchIDs).noneMatch(supportedId -> supportedId == basicSketchID)) {
+                throw new UnsupportedOperationException("Unsupported Basic Sketch ID: " + basicSketchID);
             }
             t_rf = new SimpleSumFunction(value.getNoOfP(), 0, value.getParam(), value.getSynopsisID(), value.getRequestID());
             t_rf.add(value);

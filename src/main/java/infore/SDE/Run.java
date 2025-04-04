@@ -29,10 +29,10 @@ public class Run {
 
 	private static String kafkaDataInputTopic;
 	private static String kafkaRequestInputTopic;
-	private static String kafkaBrokersList;
+	public static String kafkaBrokersList;
 	private static int parallelism;
 	private static String kafkaOutputTopic;
-	private static String kafkaLogTopic;
+	public static String kafkaLogTopic;
 
 	/**
 	 * OutputTag used to mark tuples headed to the logging side output stream. We need to create an {@link OutputTag}

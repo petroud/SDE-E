@@ -9,6 +9,7 @@ import infore.SDE.sources.KafkaProducerMessage;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.sink.SinkFunction;
+import org.streaminer.stream.cardinality.CardinalityMergeException;
 
 import java.util.*;
 
@@ -222,7 +223,7 @@ public class SpatialSketch extends Synopsis {
     }
 
     @Override
-    public Estimation estimate(Request rq) {
+    public Estimation estimate(Request rq) throws CardinalityMergeException {
 
         // Format: [x1, x2, y1, y2, basiSketchSynId, nestedParameters]
         if(rq.getRequestID() % 10 == 6) {
@@ -259,7 +260,7 @@ public class SpatialSketch extends Synopsis {
         return new Estimation(rq, Double.toString(sum.getSum()), rq.getUID() + "_" + Arrays.toString(parameters));
     }
 
-    private int RecurseQueryDyadicInterval(Dyadic2D di, Request rq, Sum sum) {
+    private int RecurseQueryDyadicInterval(Dyadic2D di, Request rq, Sum sum) throws CardinalityMergeException {
         Dyadic2D di1; Dyadic2D di2;
         di1 = di2 = di;
         int x_dim = di.x2 - di.x1 + 1;
@@ -289,7 +290,7 @@ public class SpatialSketch extends Synopsis {
 
     }
 
-    private boolean QueryDyadicInterval(Dyadic2D di, Request rq, Sum sum) {
+    private boolean QueryDyadicInterval(Dyadic2D di, Request rq, Sum sum) throws CardinalityMergeException {
         int key = dimToIndex(maxRes/(di.x2 - di.x1 + 1), maxRes/(di.y2 - di.y1 + 1));
         if (sketch.containsKey(key)) {
             int x_cell = di.x1/(di.x2 - di.x1 + 1);

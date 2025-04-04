@@ -2,6 +2,7 @@ package infore.SDE.synopses;
 
 import infore.SDE.messages.Estimation;
 import infore.SDE.messages.Request;
+import org.streaminer.stream.cardinality.CardinalityMergeException;
 
 import java.io.Serializable;
 
@@ -30,6 +31,7 @@ abstract public class Synopsis implements Serializable {
     }
 
     public Synopsis() {
+        SynopsisID = 0;
 
     }
 
@@ -61,9 +63,9 @@ abstract public class Synopsis implements Serializable {
 
     public abstract Object estimate(Object k);
 
-    public abstract Estimation estimate(Request rq);
+    public abstract Estimation estimate(Request rq) throws CardinalityMergeException;
 
-    public abstract Synopsis merge(Synopsis sk);
+    public abstract Synopsis merge(Synopsis sk) throws CardinalityMergeException;
 
     public int operationMode_add(Object k) {
         if (operationMode.equals("Queryable")) {
