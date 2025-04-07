@@ -9,8 +9,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 
 import infore.SDE.messages.Datapoint;
 import infore.SDE.messages.Estimation;
@@ -22,11 +20,9 @@ import infore.SDE.synopses.*;
 import lib.WDFT.controlBucket;
 import lib.WLSH.Bucket;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.CoProcessFunction;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.apache.hadoop.hdfs.server.common.Storage;
 
 /**
  * SDECoProcessFunction is a CoProcessFunction that consumes two keyed streams:
@@ -704,7 +700,7 @@ public class SDECoProcessFunction extends CoProcessFunction<Datapoint, Request, 
 				case 30:
 					// SpatialSketch
 					if (rq.getParam().length > 4) {
-						newSketch = new SpatialSketchRefOtherSyns(rq.getUID(), rq.getParam());
+						newSketch = new SpatialSketch(rq.getUID(), rq.getParam());
 						newSketch.setParallelism(rq.getNoOfP());
 						newSketch.setKey(rq.getDataSetkey());
 					}
@@ -721,9 +717,20 @@ public class SDECoProcessFunction extends CoProcessFunction<Datapoint, Request, 
 					Synopses.add(newSketch);
 					logOrOutput(ctx, "INFO", "Maintaining new OmniSketch with ID 31", rq);
 					break;
+				case 32:
+					// Exponential Histograms
+					if (rq.getParam().length > 3) {
+						newSketch = new ExponentialHistograms(rq.getUID(), rq.getParam());
+						newSketch.setParallelism(rq.getNoOfP());
+						newSketch.setKey(rq.getDataSetkey());
+					}
+					Synopses.add(newSketch);
+					logOrOutput(ctx, "INFO", "Maintaining new ExponentialHistograms with ID 32", rq);
+					break;
 				default:
 					logOrOutput(ctx, "WARN", "SynopsisID not recognized: " + rq.getSynopsisID(), rq);
 					break;
+
 			}
 
 			M_Synopses.put(rq.getKey(),Synopses);
