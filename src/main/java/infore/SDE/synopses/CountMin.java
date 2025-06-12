@@ -19,7 +19,7 @@ public class CountMin extends Synopsis implements Serializable {
 
 	public CountMin(int uid, String[] parameters) {
 		super(uid,parameters[0],parameters[1], parameters[2]);
-		if (parameters.length == 7) {
+		if (parameters.length == 7 && Integer.parseInt(parameters[6]) > 0) {
 			// Dyadic ranges needed
 			range = true;
 			dyadicRangeBits = Integer.parseInt(parameters[6]);

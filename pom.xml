@@ -169,6 +169,14 @@
 			<scope>test</scope>
 		</dependency>
 
+<!--		-->
+<!--		dependency from java-hll for HLL++-->
+		<dependency>
+			<groupId>net.agkn</groupId>
+			<artifactId>hll</artifactId>
+			<version>1.6.0</version>
+		</dependency>
+
     </dependencies>
 
 	<build>

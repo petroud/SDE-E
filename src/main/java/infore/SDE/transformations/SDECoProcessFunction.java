@@ -727,6 +727,20 @@ public class SDECoProcessFunction extends CoProcessFunction<Datapoint, Request, 
 					Synopses.add(newSketch);
 					logOrOutput(ctx, "INFO", "Maintaining new ExponentialHistograms with ID 32", rq);
 					break;
+				case 33:
+					// HyperLogLog++
+					if (rq.getParam().length > 2){
+						newSketch = new HyperLogLogPlusSynopsis(rq.getUID(), rq.getParam());
+						newSketch.setParallelism(rq.getNoOfP());
+						newSketch.setKey(rq.getDataSetkey());
+						logOrOutput(ctx, "INFO", "Maintaining new HyperLogLog++ synopsis [Type ID: "
+								+ rq.getSynopsisID()+" | StreamID: "+rq.getStreamID()+" | DatasetKey: "+rq.getKey()
+								+"] upon request: " + rq.getUID(), rq);
+					} else {
+						logOrOutput(ctx, "ERROR", "Insufficient parameters for HyperLogLog++. Not adding new instance.", rq);
+					}
+					Synopses.add(newSketch);
+					break;
 				default:
 					logOrOutput(ctx, "WARN", "SynopsisID not recognized: " + rq.getSynopsisID(), rq);
 					break;

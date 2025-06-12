@@ -121,15 +121,15 @@ public class SpatialSketch extends Synopsis {
         return x + y * (maxRes + 1);
     }
 
-    private int getNormX(int x) {
+    private int getNormX(double x) {
         return getGridIndex(x, minX, maxX, maxRes);
     }
-    private int getNormY(int y) {
+    private int getNormY(double y) {
         return getGridIndex(y, minY, maxY, maxRes);
     }
 
-    private int getGridIndex(int coordinate, int minDomain, int maxDomain,int res) {
-        return (int) Math.floor((double) (coordinate - minDomain) / (maxDomain - minDomain) * res);
+    private int getGridIndex(double coordinate, int minDomain, int maxDomain,int res) {
+        return (int) Math.floor((coordinate - minDomain) / (maxDomain - minDomain) * res);
     }
     int prev_x = -1;
     int prev_y = -1;
@@ -324,11 +324,13 @@ public class SpatialSketch extends Synopsis {
         sum = new Reduce(reduceMethod);
 
         String[] parameters = rq.getParam();
+        // {"key": "Estimate:84", "streamID": "S1", "synopsisID": 30, "requestID": 3, "dataSetkey": "synopses_experiment",
+        // "param": ["26.36719", "38.18848", "34.95799", "41.90228", "357"], "noOfP": 2, "uid": 84, "externalUID": "Estimate:84"}
 
-        int x1 = getNormX(Integer.parseInt(parameters[0]));
-        int x2 = getNormX(Integer.parseInt(parameters[1]));
-        int y1 = getNormY(Integer.parseInt(parameters[2]));
-        int y2 = getNormY(Integer.parseInt(parameters[3]));
+        int x1 = getNormX(Double.parseDouble(parameters[0]));
+        int x2 = getNormX(Double.parseDouble(parameters[1]));
+        int y1 = getNormY(Double.parseDouble(parameters[2]));
+        int y2 = getNormY(Double.parseDouble(parameters[3]));
 
         String[] nestedParameters = new String[parameters.length - 5];
         System.arraycopy(parameters, 5, nestedParameters, 0, nestedParameters.length);
